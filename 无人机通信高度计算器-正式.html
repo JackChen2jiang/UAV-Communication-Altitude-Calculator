@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无人机通信高度计算器</title>
+    <!-- 引入html2canvas库，用于保存页面为图片 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f0f7ff;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 150, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #1a5fb4;
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a5fb4;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #c8e1ff;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #1a5fb4;
+        }
+        
+        .units {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: #1a5fb4;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            min-width: 200px;
+        }
+        
+        button:hover {
+            background-color: #0d4a9c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #saveAsImageBtn {
+            background-color: #4caf50;
+        }
+        
+        #saveAsImageBtn:hover {
+            background-color: #388e3c;
+        }
+        
+        .results-container {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px dashed #c8e1ff;
+        }
+        
+        .result-item {
+            background-color: #f0f7ff;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #1a5fb4;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            color: #1a5fb4;
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0d4a9c;
+        }
+        
+        .result-unit {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+        
+        .note {
+            background-color: #fff9e6;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin-top: 25px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .formula {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-size: 0.9em;
+            color: #333;
+        }
+        
+        .formula-section {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .formula-title {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+        
+        .saving-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 18px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 5px solid #ffffff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .result-value {
+                font-size: 18px;
+            }
+            
+            .button-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                min-width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 保存图片时的加载动画 -->
+    <div class="saving-overlay" id="savingOverlay">
+        <div class="spinner"></div>
+        <div>正在生成图片...</div>
+    </div>
+    
+    <div class="container" id="containerToCapture">
+        <h1>无人机通信高度计算器</h1>
+        <p class="subtitle">使用标准菲涅尔区公式计算无人机所需飞行高度</p>
+        
+        <div class="formula-section">
+            <div class="formula-title">菲涅尔区标准公式</div>
+            <div class="formula">路径上任一点 x 处的半径：r(x) = √[λ·x·(d-x)/d]</div>
+            <div class="formula">中点 (x = d/2) 处的最大半径：r_max = √(λ·d/4) = (1/2)·√(λ·d)</div>
+        </div>
+        
+        <div class="formula-section">
+            <div class="formula-title">计算方法</div>
+            <div class="formula">已知地面站天线高度(h₁)、工作频率(f)、通信距离(d)、地面站天线高度变化(Δh)，求无人机高度(h₂)。</div>
+            <div class="formula">基于公式：(h₁ + Δh + h₂)/2 ≥ 0.6 × (1/2)·√(λ·d) + d²/(8×R)</div>
+            <div class="formula">其中：λ = c/f, c = 3×10⁸ m/s, R = 6371000 m</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="groundHeight">地面站天线高度 (h₁)</label>
+            <input type="number" id="groundHeight" value="6.5" step="0.1" min="0">
+            <div class="units">单位：米 (m)</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="frequency">工作频率 (f)</label>
+            <input type="number" id="frequency" value="1400" step="1" min="1">
+            <div class="units">单位：兆赫兹 (MHz)</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="distance">通信距离 (d)</label>
+            <input type="number" id="distance" value="20" step="0.1" min="0.1">
+            <div class="units">单位：公里 (km)</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="heightVariation">地面站天线高度变化 (Δh)</label>
+            <input type="number" id="heightVariation" value="0" step="0.1">
+            <div class="units">单位：米 (m) - 正值为升高，负值为降低</div>
+        </div>
+        
+        <div class="button-container">
+            <div class="button-row">
+                <button onclick="calculate()">计算所需无人机高度</button>
+                <button id="saveAsImageBtn" onclick="saveAsImage()">保存为图片</button>
+            </div>
+        </div>
+        
+        <div class="results-container">
+            <h2>计算结果</h2>
+            
+            <div class="result-item">
+                <div class="result-title">第一菲涅尔区最大半径 (r_max)</div>
+                <div class="formula">公式: r_max = (1/2)·√(λ·d)</div>
+                <div class="result-value"><span id="fresnelRadius">-</span><span class="result-unit">米</span></div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-title">所需净空高度 (60%菲涅尔区无遮挡要求)</div>
+                <div class="formula">公式: h_net = 0.6 × r_max</div>
+                <div class="result-value"><span id="clearanceHeight">-</span><span class="result-unit">米</span></div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-title">地球曲率隆起高度 (h_c)</div>
+                <div class="formula">公式: h_c = d²/(8×R)  其中 R = 6371000 m</div>
+                <div class="result-value"><span id="earthCurvature">-</span><span class="result-unit">米</span></div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-title">总所需中点净空高度 (h_total)</div>
+                <div class="formula">公式: h_total = h_net + h_c</div>
+                <div class="result-value"><span id="totalClearance">-</span><span class="result-unit">米</span></div>
+            </div>
+            
+            <div class="result-item">
+                <div class="result-title">不考虑地面站天线高度变化所需无人机高度 (h₂)</div>
+                <div class="formula">公式: (h₁ + h₂)/2 ≥ h_total</div>
+                <div class="result-value"><span id="droneHeightSimple">-</span><span class="result-unit">米</span></div>
+            </div>
+            
+            <div class="result-item" style="background-color: #e8f5e9; border-left-color: #4caf50;">
+                <div class="result-title">考虑地面站天线高度变化所需无人机高度 (h₂)</div>
+                <div class="formula">公式: (h₁ + Δh + h₂)/2 ≥ h_total</div>
+                <div class="result-value"><span id="droneHeightAdjusted">-</span><span class="result-unit">米</span></div>
+            </div>
+        </div>
+        
+        <div class="note">
+            <strong>计算说明：</strong>
+            <ol>
+                <li>使用标准菲涅尔区公式：r_max = (1/2)·√(λ·d)</li>
+                <li>其中：λ = c/f，c = 3×10⁸ m/s (光速)，f = 工作频率 (Hz)，d = 通信距离 (m)</li>
+                <li>地球曲率隆起高度计算使用实际地球半径 R = 6371000 m</li>
+                <li>无人机高度计算公式：h₂ ≥ 2 × h_total - (h₁ + Δh)</li>
+                <li>相比之前版本，第一菲涅尔区最大半径计算公式已改为标准形式</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // 常量定义
+        const SPEED_OF_LIGHT = 3e8; // 光速，m/s
+        const EARTH_RADIUS = 6371000; // 实际地球半径，m
+        
+        // 保存为图片功能
+        function saveAsImage() {
+            const overlay = document.getElementById('savingOverlay');
+            const container = document.getElementById('containerToCapture');
+            
+            // 显示保存中提示
+            overlay.style.display = 'flex';
+            
+            // 使用html2canvas将容器内容转换为canvas
+            html2canvas(container, {
+                scale: 2, // 提高图片质量
+                backgroundColor: '#f0f7ff',
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            }).then(canvas => {
+                // 将canvas转换为图片URL
+                const imageUrl = canvas.toDataURL('image/png');
+                
+                // 创建一个隐藏的下载链接
+                const link = document.createElement('a');
+                link.href = imageUrl;
+                link.download = '无人机通信高度计算_' + new Date().toISOString().slice(0, 10) + '.png';
+                document.body.appendChild(link);
+                
+                // 触发下载
+                link.click();
+                
+                // 清理
+                document.body.removeChild(link);
+                
+                // 隐藏保存中提示
+                overlay.style.display = 'none';
+                
+                // 显示成功提示
+                alert('图片已保存！文件名: ' + link.download);
+            }).catch(error => {
+                console.error('保存图片时出错:', error);
+                overlay.style.display = 'none';
+                alert('保存图片失败，请稍后重试。错误信息: ' + error.message);
+            });
+        }
+        
+        function calculate() {
+            // 获取输入值
+            const groundHeight = parseFloat(document.getElementById('groundHeight').value);
+            const frequencyMHz = parseFloat(document.getElementById('frequency').value);
+            const distanceKm = parseFloat(document.getElementById('distance').value);
+            const heightVariation = parseFloat(document.getElementById('heightVariation').value);
+            
+            // 验证输入
+            if (isNaN(groundHeight) || groundHeight < 0) {
+                alert("请输入有效的地面站天线高度（非负数）");
+                return;
+            }
+            
+            if (isNaN(frequencyMHz) || frequencyMHz <= 0) {
+                alert("请输入有效的工作频率（正数）");
+                return;
+            }
+            
+            if (isNaN(distanceKm) || distanceKm <= 0) {
+                alert("请输入有效的通信距离（正数）");
+                return;
+            }
+            
+            if (isNaN(heightVariation)) {
+                alert("请输入有效的高度变化值");
+                return;
+            }
+            
+            // 单位转换
+            const frequency = frequencyMHz * 1e6; // MHz -> Hz
+            const distance = distanceKm * 1000; // km -> m
+            
+            // 计算波长
+            const wavelength = SPEED_OF_LIGHT / frequency; // m
+            
+            // 计算第一菲涅尔区最大半径（使用标准公式）
+            // 标准公式：r_max = 0.5 * √(λ * d)
+            const fresnelRadius = 0.5 * Math.sqrt(wavelength * distance);
+            
+            // 计算所需净空高度（60%菲涅尔区无遮挡要求）
+            const clearanceHeight = fresnelRadius * 0.6;
+            
+            // 计算地球曲率隆起高度
+            const earthCurvature = Math.pow(distance, 2) / (8 * EARTH_RADIUS);
+            
+            // 计算总所需中点净空高度
+            const totalClearance = clearanceHeight + earthCurvature;
+            
+            // 计算不考虑高度变化所需无人机高度
+            const droneHeightSimple = 2 * totalClearance - groundHeight;
+            
+            // 计算考虑高度变化所需无人机高度
+            const adjustedGroundHeight = groundHeight + heightVariation;
+            const droneHeightAdjusted = 2 * totalClearance - adjustedGroundHeight;
+            
+            // 显示结果，保留3位小数
+            document.getElementById('fresnelRadius').textContent = fresnelRadius.toFixed(3);
+            document.getElementById('clearanceHeight').textContent = clearanceHeight.toFixed(3);
+            document.getElementById('earthCurvature').textContent = earthCurvature.toFixed(3);
+            document.getElementById('totalClearance').textContent = totalClearance.toFixed(3);
+            document.getElementById('droneHeightSimple').textContent = droneHeightSimple.toFixed(3);
+            document.getElementById('droneHeightAdjusted').textContent = droneHeightAdjusted.toFixed(3);
+            
+            // 如果计算出的高度为负数，添加警告
+            if (droneHeightSimple < 0) {
+                document.getElementById('droneHeightSimple').innerHTML = droneHeightSimple.toFixed(3) + 
+                    ' <span style="color:#f44336; font-size:0.8em;">(高度为负，地面站天线已足够高)</span>';
+            }
+            
+            if (droneHeightAdjusted < 0) {
+                document.getElementById('droneHeightAdjusted').innerHTML = droneHeightAdjusted.toFixed(3) + 
+                    ' <span style="color:#f44336; font-size:0.8em;">(高度为负，地面站天线已足够高)</span>';
+            }
+            
+            // 如果计算出的高度很大，添加建议
+            if (droneHeightAdjusted > 1000) {
+                document.getElementById('droneHeightAdjusted').innerHTML = droneHeightAdjusted.toFixed(3) + 
+                    ' <span style="color:#ff9800; font-size:0.8em;">(高度过高，建议考虑中继或提高地面站高度)</span>';
+            }
+            
+            // 显示计算详情
+            console.log('计算详情（使用标准菲涅尔区公式）:');
+            console.log('输入参数: h₁ =', groundHeight, 'm, f =', frequencyMHz, 'MHz, d =', distanceKm, 'km, Δh =', heightVariation, 'm');
+            console.log('波长 λ = c/f =', SPEED_OF_LIGHT, '/', frequency, '=', wavelength.toFixed(6), 'm');
+            console.log('菲涅尔区最大半径 r_max = 0.5 * √(' + wavelength.toFixed(6) + ' * ' + distance + ') =', fresnelRadius.toFixed(3), 'm');
+            console.log('净空高度 = 0.6 *', fresnelRadius.toFixed(3), '=', clearanceHeight.toFixed(3), 'm');
+            console.log('地球曲率高度 = d²/(8R) = (' + distance + ')²/(8×' + EARTH_RADIUS + ') =', earthCurvature.toFixed(3), 'm');
+            console.log('总净空高度 =', totalClearance.toFixed(3), 'm');
+            console.log('无人机高度（不考虑Δh）= 2 ×', totalClearance.toFixed(3), '-', groundHeight, '=', droneHeightSimple.toFixed(3), 'm');
+            console.log('无人机高度（考虑Δh）= 2 ×', totalClearance.toFixed(3), '- (' + groundHeight + ' + ' + heightVariation + ') =', droneHeightAdjusted.toFixed(3), 'm');
+        }
+        
+        // 页面加载时自动计算一次
+        window.onload = function() {
+            calculate();
+        };
+        
+        // 添加键盘事件监听，输入时实时计算
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+    </script>
+</body>
+</html>
